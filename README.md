@@ -4,7 +4,7 @@
 [![C++](https://img.shields.io/badge/C++-20-%2300599C.svg)](https://en.cppreference.com/w/cpp/20)
 [![Boost](https://img.shields.io/badge/Boost-PFR-green.svg)](https://github.com/boostorg/pfr)
 
-**SSZ** 是一个轻量级、header-only 的 C++20 序列化库，基于 [Boost.PFR](https://github.com/boostorg/pfr) 实现编译期反射，支持对任意 C++ 结构体进行二进制序列化与反序列化，无需手写任何模板特化或宏。
+**SSZ** 是一个轻量级、header-only 的 C++20 序列化库，基于 [Boost.PFR](https://github.com/boostorg/pfr) 实现编译期反射，支持对任意 C++ 结构体进行二进制序列化与反序列化，无需手写任何模板特化或宏。由于使用了Boost.PFR，所以 `SSZ` 的实现相当简单，您可以在此基础上轻松修改出自己需要序列化库。
 
 ## 特性
 
@@ -82,6 +82,12 @@ add_subdirectory(path/to/ssz)
 # 或直接引用头文件路径
 target_include_directories(your_target PRIVATE /path/to/ssz/include)
 ```
+
+## 鸣谢
+
+本项目核心功能基于 [Boost.PFR](https://github.com/boostorg/pfr/)
+
+本项部分设计灵感来自 [struct_pack](https://github.com/alibaba/yalantinglibs/tree/main/include/ylt/struct_pack)
 
 ## 许可
 
