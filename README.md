@@ -87,7 +87,7 @@ target_include_directories(your_target PRIVATE /path/to/ssz/include)
 
 本项目核心功能基于 [Boost.PFR](https://github.com/boostorg/pfr/)
 
-本项部分设计灵感来自 [struct_pack](https://github.com/alibaba/yalantinglibs/tree/main/include/ylt/struct_pack)
+本项目部分设计灵感来自 [struct_pack](https://github.com/alibaba/yalantinglibs/tree/main/include/ylt/struct_pack)
 
 ## 许可
 
