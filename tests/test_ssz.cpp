@@ -197,11 +197,11 @@ BOOST_AUTO_TEST_SUITE(basic_serialization)
 BOOST_AUTO_TEST_CASE(empty_struct_roundtrip)
 {
     empty_struct orig{};
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
     BOOST_TEST(buf.data.size() == sizeof(uint32_t) + 1); // 类型哈希 + 字节序标志
 
     empty_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
 }
 
@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(simple_integrals_roundtrip)
         -0x1122334455667788LL       // int64_t
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
     // 4字节哈希 + 1字节字节序标志 + 每个字段按 sizeof 计算
     size_t expected_size = sizeof(uint32_t) + 1
         + sizeof(orig.a) + sizeof(orig.b) + sizeof(orig.c) + sizeof(orig.d)
@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(simple_integrals_roundtrip)
     BOOST_TEST(buf.data.size() == expected_size);
 
     simple_integrals result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.a == orig.a);
     BOOST_TEST(result.b == orig.b);
@@ -246,7 +246,7 @@ BOOST_AUTO_TEST_CASE(with_string_roundtrip)
         "你好，世界！"     // UTF-8 中文
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
     // 4字节哈希 + 1字节字节序标志 + id(4) + name_len(4) + name_data + desc_len(4) + desc_data
     size_t expected_size = sizeof(uint32_t) + 1
         + sizeof(uint32_t)
@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE(with_string_roundtrip)
     BOOST_TEST(buf.data.size() == expected_size);
 
     with_string result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.name == orig.name);
@@ -266,10 +266,10 @@ BOOST_AUTO_TEST_CASE(empty_string_roundtrip)
 {
     with_string orig{0, "", ""};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_string result{999, "should_be_cleared", "should_be_cleared"};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.name.empty());
@@ -292,10 +292,10 @@ BOOST_AUTO_TEST_CASE(vector_integral_roundtrip)
         {1, -2, 3, -4, 5, -6}
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_vector_integral result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.scores.size() == orig.scores.size());
@@ -310,10 +310,10 @@ BOOST_AUTO_TEST_CASE(empty_vector_roundtrip)
 {
     with_vector_integral orig{0, {}, {}};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_vector_integral result{999, {1, 2, 3}, {4, 5, 6}};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.scores.empty());
@@ -327,10 +327,10 @@ BOOST_AUTO_TEST_CASE(vector_float_roundtrip)
         {3.14f, 2.718f, 1.618f, 0.577f}
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_vector_float result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.values.size() == orig.values.size());
@@ -347,10 +347,10 @@ BOOST_AUTO_TEST_CASE(complex_mixed_roundtrip)
         {1000000, 2000000, 3000000}
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_vector_complex result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.data.size() == orig.data.size());
@@ -373,10 +373,10 @@ BOOST_AUTO_TEST_CASE(mixed_types_roundtrip)
         {-100, -200, -300}
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     mixed_types result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.label == orig.label);
@@ -399,10 +399,10 @@ BOOST_AUTO_TEST_CASE(large_data_roundtrip)
         orig.blob[i] = static_cast<uint8_t>(i & 0xFF);
     orig.payload = std::string(1024, 'A'); // 1KB string
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     large_data result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.index == orig.index);
     BOOST_TEST(result.blob.size() == orig.blob.size());
@@ -422,11 +422,11 @@ BOOST_AUTO_TEST_SUITE(type_hash_checks)
 BOOST_AUTO_TEST_CASE(type_hash_mismatch_detected)
 {
     simple_integrals orig{};
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     // 使用不同的类型反序列化
     wrong_integrals result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(!ok); // 应该返回 false
 }
 
@@ -435,8 +435,8 @@ BOOST_AUTO_TEST_CASE(type_hash_consistency)
     // 同一结构体多次序列化应得到相同的哈希
     simple_integrals a{};
     simple_integrals b{};
-    auto buf_a = ssz_pack::serialize(a);
-    auto buf_b = ssz_pack::serialize(b);
+    auto buf_a = ssz::serialize(a);
+    auto buf_b = ssz::serialize(b);
 
     // 前4字节是类型哈希
     BOOST_TEST(buf_a.data.size() >= sizeof(uint32_t));
@@ -450,7 +450,7 @@ BOOST_AUTO_TEST_CASE(type_hash_consistency)
 BOOST_AUTO_TEST_SUITE_END()
 
 // ============================================================================
-// ssz_buffer 功能测试
+// ssz::buffer 功能测试
 // ============================================================================
 
 BOOST_AUTO_TEST_SUITE(buffer_functionality)
@@ -458,7 +458,7 @@ BOOST_AUTO_TEST_SUITE(buffer_functionality)
 BOOST_AUTO_TEST_CASE(advance_read_behavior)
 {
     simple_integrals orig{};
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     size_t initial_offset = buf.offset;
 
@@ -478,8 +478,8 @@ BOOST_AUTO_TEST_CASE(multiple_serialize_independence)
     simple_integrals a{1, 2, 3, 4, 5, 6, 7, 8};
     simple_integrals b{9, 10, 11, 12, 13, 14, 15, 16};
 
-    auto buf_a = ssz_pack::serialize(a);
-    auto buf_b = ssz_pack::serialize(b);
+    auto buf_a = ssz::serialize(a);
+    auto buf_b = ssz::serialize(b);
 
     // 两个 buffer 应包含不同的数据（不同值序列化结果不同）
     BOOST_TEST(buf_a.data.size() > sizeof(uint32_t) + 1);
@@ -490,8 +490,8 @@ BOOST_AUTO_TEST_CASE(multiple_serialize_independence)
     // 反序列化应得到各自的值
     simple_integrals ra{};
     simple_integrals rb{};
-    BOOST_TEST(ssz_pack::deserialize(buf_a, ra));
-    BOOST_TEST(ssz_pack::deserialize(buf_b, rb));
+    BOOST_TEST(ssz::deserialize(buf_a, ra));
+    BOOST_TEST(ssz::deserialize(buf_b, rb));
     BOOST_TEST(ra.a == a.a);
     BOOST_TEST(rb.a == b.a);
 }
@@ -512,10 +512,10 @@ BOOST_AUTO_TEST_CASE(simple_nested_struct_roundtrip)
         "outer-name"
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_nested_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.inner.x == orig.inner.x);
@@ -532,10 +532,10 @@ BOOST_AUTO_TEST_CASE(nested_struct_empty_string)
         ""
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_nested_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.inner.x == orig.inner.x);
@@ -551,10 +551,10 @@ BOOST_AUTO_TEST_CASE(deep_nested_struct_roundtrip)
         {{1, "deep-inner"}, {0xAA, 0xBB, 0xCC}}
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     deep_outer result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.middle.inner.a == orig.middle.inner.a);
@@ -571,10 +571,10 @@ BOOST_AUTO_TEST_CASE(empty_nested_struct_roundtrip)
         {}
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_empty_nested result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
 }
@@ -598,10 +598,10 @@ BOOST_AUTO_TEST_CASE(vector_of_structs_roundtrip)
         }
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_vector_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.items.size() == orig.items.size());
@@ -619,10 +619,10 @@ BOOST_AUTO_TEST_CASE(empty_vector_of_structs)
         {}
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_vector_struct result{42, {{99, "should-be-cleared"}}};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.items.empty());
@@ -635,10 +635,10 @@ BOOST_AUTO_TEST_CASE(single_element_vector_struct)
         {{42, "single"}}
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_vector_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.items.size() == 1);
@@ -656,10 +656,10 @@ BOOST_AUTO_TEST_CASE(vector_of_structs_nested_attrs)
         }
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_nested_vector_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.complex_items.size() == orig.complex_items.size());
@@ -687,10 +687,10 @@ BOOST_AUTO_TEST_CASE(multi_level_vector_struct)
         }
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_multi_vector result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.groups.size() == orig.groups.size());
@@ -710,10 +710,10 @@ BOOST_AUTO_TEST_CASE(vector_struct_type_hash_mismatch)
 {
     // 使用 with_vector_struct 序列化，用 with_nested_vector_struct 反序列化应失败
     with_vector_struct orig{1, {{1, "a"}}};
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_nested_vector_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(!ok);
 }
 
@@ -726,11 +726,11 @@ BOOST_AUTO_TEST_CASE(inner_struct_type_hash_mismatch)
         {10, 20, "test"},
         "outer"
     };
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     // 尝试用 with_vector_struct 反序列化（字段类型不同）
     with_vector_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(!ok);
 }
 
@@ -768,7 +768,7 @@ BOOST_AUTO_TEST_CASE(char_types_roundtrip)
         L'世'
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
     size_t expected_size = sizeof(uint32_t) + 1  // type hash + 字节序标志
         + sizeof(uint32_t)  // id
         + sizeof(char)      // a
@@ -778,7 +778,7 @@ BOOST_AUTO_TEST_CASE(char_types_roundtrip)
     BOOST_TEST(buf.data.size() == expected_size);
 
     with_char_types result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.a == orig.a);
@@ -795,10 +795,10 @@ BOOST_AUTO_TEST_CASE(char_and_string_roundtrip)
         0xAB
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_char_and_string result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.initial == orig.initial);
     BOOST_TEST(result.name == orig.name);
@@ -815,10 +815,10 @@ BOOST_AUTO_TEST_CASE(char_extreme_values)
         static_cast<wchar_t>(0x10FFFF)
     };
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_char_types result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.a == orig.a);
     BOOST_TEST(result.b == orig.b);
@@ -889,7 +889,7 @@ BOOST_AUTO_TEST_CASE(array_integral_roundtrip)
     orig.integers = {{0xDEAD, 0xBEAF, 0xCAFE}};
     orig.longs = {{0x1234567890ABCDEFULL, 0xFEDCBA0987654321ULL}};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
     size_t expected_size = sizeof(uint32_t) + 1  // type hash + 字节序标志
         + sizeof(uint32_t)                                       // id
         + sizeof(uint8_t) * 4                                    // bytes[4]
@@ -898,7 +898,7 @@ BOOST_AUTO_TEST_CASE(array_integral_roundtrip)
     BOOST_TEST(buf.data.size() == expected_size);
 
     with_array_integral result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.bytes == orig.bytes);
@@ -913,10 +913,10 @@ BOOST_AUTO_TEST_CASE(array_float_roundtrip)
     orig.floats = {{3.14f, 2.718f, 1.618f}};
     orig.doubles = {{3.14159265358979, 2.71828182845904}};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_array_float result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     for (size_t i = 0; i < orig.floats.size(); i++)
@@ -933,10 +933,10 @@ BOOST_AUTO_TEST_CASE(array_char_roundtrip)
     orig.label[orig.label.size() - 1] = '\0';
     orig.raw = {{0x00, 0xFF, 0xAA, 0x55, 0x01, 0x80, 0x7F, 0xFE}};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_array_char result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.label == orig.label);
@@ -949,10 +949,10 @@ BOOST_AUTO_TEST_CASE(array_2d_roundtrip)
     orig.id = 4;
     orig.matrix = {{ {{1, 2, 3}}, {{4, 5, 6}} }};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_2d_array result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     for (size_t i = 0; i < orig.matrix.size(); i++)
@@ -966,10 +966,10 @@ BOOST_AUTO_TEST_CASE(array_of_struct_roundtrip)
     orig.id = 5;
     orig.points = {{ {10, 20}, {30, -40}, {50, 60} }};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_array_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     for (size_t i = 0; i < orig.points.size(); i++)
@@ -986,10 +986,10 @@ BOOST_AUTO_TEST_CASE(array_and_vector_mixed_roundtrip)
     orig.fixed = {{10, 20, 30, 40}};
     orig.dynamic = {100, 200, 300};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_array_and_vector result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.fixed == orig.fixed);
@@ -1002,14 +1002,14 @@ BOOST_AUTO_TEST_CASE(array_default_values)
 {
     with_array_integral orig{};
     // 默认构造的 std::array 是值初始化的（对于整数是 0）
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_array_integral result{};
     result.id = 999;
     result.bytes = {{1, 2, 3, 4}};
     result.integers = {{5, 6, 7}};
     result.longs = {{8, 9}};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == 0);
     for (auto v : result.bytes)
@@ -1049,14 +1049,14 @@ BOOST_AUTO_TEST_CASE(bool_true_false_roundtrip)
 {
     with_bool orig{1, true, false, true};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
     size_t expected_size = sizeof(uint32_t) + 1  // type hash + 字节序标志
         + sizeof(uint32_t)  // id
         + sizeof(bool) * 3; // flag_a, flag_b, flag_c
     BOOST_TEST(buf.data.size() == expected_size);
 
     with_bool result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.flag_a == true);
@@ -1068,10 +1068,10 @@ BOOST_AUTO_TEST_CASE(bool_all_false)
 {
     with_bool orig{0, false, false, false};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_bool result{999, true, true, true};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == 0);
     BOOST_TEST(result.flag_a == false);
@@ -1083,10 +1083,10 @@ BOOST_AUTO_TEST_CASE(bool_all_true)
 {
     with_bool orig{42, true, true, true};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_bool result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == 42);
     BOOST_TEST(result.flag_a == true);
@@ -1103,10 +1103,10 @@ BOOST_AUTO_TEST_CASE(bool_mixed_with_other_types)
     orig.enabled = false;
     orig.data = {1, -2, 3};
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_bool_mixed result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.active == true);
@@ -1147,7 +1147,7 @@ BOOST_AUTO_TEST_CASE(integer_variations_roundtrip)
     orig.ll = -1234567890123456789LL;
     orig.ull = 9876543210987654321ULL;
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
     size_t expected_size = sizeof(uint32_t) + 1  // type hash + 字节序标志
         + sizeof(uint32_t)       // id
         + sizeof(short)          // s
@@ -1159,7 +1159,7 @@ BOOST_AUTO_TEST_CASE(integer_variations_roundtrip)
     BOOST_TEST(buf.data.size() == expected_size);
 
     with_integer_variations result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.s == orig.s);
@@ -1181,13 +1181,13 @@ BOOST_AUTO_TEST_CASE(integer_variations_zero)
     orig.ll = 0;
     orig.ull = 0;
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_integer_variations result{};
     result.id = 999;
     result.s = 1; result.us = 2; result.l = 3; result.ul = 4;
     result.ll = 5; result.ull = 6;
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == 0);
     BOOST_TEST(result.s == 0);
@@ -1209,10 +1209,10 @@ BOOST_AUTO_TEST_CASE(integer_variations_extreme)
     orig.ll = 9223372036854775807LL;  // LLONG_MAX
     orig.ull = 0ULL;             // 0
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     with_integer_variations result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.s == orig.s);
@@ -1245,7 +1245,7 @@ BOOST_AUTO_TEST_CASE(big_endian_encoding)
     orig.b = 0x03040506;
     orig.c = 0x0708090A0B0C0D0EULL;
 
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     // 验证大端序编码：高位字节在前
     // 跳过类型哈希 (4字节) 和字节序标志 (1字节)
@@ -1268,7 +1268,7 @@ BOOST_AUTO_TEST_CASE(big_endian_encoding)
     BOOST_TEST(buf.data[18] == static_cast<char>(0x0E));
 
     with_fixed_hex result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.a == orig.a);
     BOOST_TEST(result.b == orig.b);
@@ -1279,15 +1279,15 @@ BOOST_AUTO_TEST_CASE(little_endian_flag_byte)
 {
     // 验证 little_endian=true 时字节序标志为 1
     with_fixed_hex orig{};
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     // 默认 (big-endian) 时字节序标志为 0
-    auto buf_default = ssz_pack::serialize(orig, false);
+    auto buf_default = ssz::serialize(orig, false);
     BOOST_TEST(buf_default.data[0] == static_cast<char>(0));
 
     // 默认参数应为大端序 (标志为 0)
-    auto buf_default2 = ssz_pack::serialize(orig);
+    auto buf_default2 = ssz::serialize(orig);
     BOOST_TEST(buf_default2.data[0] == static_cast<char>(0));
 }
 
@@ -1299,7 +1299,7 @@ BOOST_AUTO_TEST_CASE(little_endian_encoding)
     orig.b = 0x03040506;
     orig.c = 0x0708090A0B0C0D0EULL;
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
 
     // 跳过类型哈希 (4字节) 和字节序标志 (1字节)
     // a (uint16_t) 小端: 0x02 0x01
@@ -1322,7 +1322,7 @@ BOOST_AUTO_TEST_CASE(little_endian_encoding)
 
     // 验证反序列化正确
     with_fixed_hex result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.a == orig.a);
     BOOST_TEST(result.b == orig.b);
@@ -1343,7 +1343,7 @@ BOOST_AUTO_TEST_CASE(little_endian_roundtrip)
         -0x1122334455667788LL       // int64_t
     };
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     // 4字节哈希 + 1字节字节序标志 + 各字段
     size_t expected_size = sizeof(uint32_t) + 1
         + sizeof(orig.a) + sizeof(orig.b) + sizeof(orig.c) + sizeof(orig.d)
@@ -1353,7 +1353,7 @@ BOOST_AUTO_TEST_CASE(little_endian_roundtrip)
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     simple_integrals result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.a == orig.a);
     BOOST_TEST(result.b == orig.b);
@@ -1374,11 +1374,11 @@ BOOST_AUTO_TEST_CASE(little_endian_with_string)
         "小端序测试"
     };
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     with_string result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.name == orig.name);
@@ -1394,11 +1394,11 @@ BOOST_AUTO_TEST_CASE(little_endian_with_vector)
         {1, -2, 3, -4, 5, -6}
     };
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     with_vector_integral result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.scores.size() == orig.scores.size());
@@ -1418,11 +1418,11 @@ BOOST_AUTO_TEST_CASE(little_endian_nested_struct)
         "outer-name"
     };
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     with_nested_struct result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.inner.x == orig.inner.x);
@@ -1439,8 +1439,8 @@ BOOST_AUTO_TEST_CASE(little_endian_vs_big_endian_order)
     orig.b = 0x03040506;
     orig.c = 0x0708090A0B0C0D0EULL;
 
-    auto buf_big = ssz_pack::serialize(orig, false);   // 大端序
-    auto buf_little = ssz_pack::serialize(orig, true);  // 小端序
+    auto buf_big = ssz::serialize(orig, false);   // 大端序
+    auto buf_little = ssz::serialize(orig, true);  // 小端序
 
     // 类型哈希 (第1-4字节) 字节逆序
     for (size_t i = 0; i < sizeof(uint32_t); i++)
@@ -1459,8 +1459,8 @@ BOOST_AUTO_TEST_CASE(little_endian_vs_big_endian_order)
     // 两种端序都应反序列化正确
     with_fixed_hex result_big{};
     with_fixed_hex result_little{};
-    BOOST_TEST(ssz_pack::deserialize(buf_big, result_big));
-    BOOST_TEST(ssz_pack::deserialize(buf_little, result_little));
+    BOOST_TEST(ssz::deserialize(buf_big, result_big));
+    BOOST_TEST(ssz::deserialize(buf_little, result_little));
     BOOST_TEST(result_big.a == orig.a);
     BOOST_TEST(result_big.b == orig.b);
     BOOST_TEST(result_big.c == orig.c);
@@ -1481,11 +1481,11 @@ BOOST_AUTO_TEST_CASE(little_endian_mixed_types)
         {-100, -200, -300}
     };
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     mixed_types result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.label == orig.label);
@@ -1509,11 +1509,11 @@ BOOST_AUTO_TEST_CASE(little_endian_large_data)
         orig.blob[i] = static_cast<uint8_t>(i & 0xFF);
     orig.payload = std::string(1024, 'A'); // 1KB string
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     large_data result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.index == orig.index);
     BOOST_TEST(result.blob.size() == orig.blob.size());
@@ -1527,11 +1527,11 @@ BOOST_AUTO_TEST_CASE(little_endian_bool)
     // 小端序下 bool 类型的序列化/反序列化
     with_bool orig{1, true, false, true};
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     with_bool result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.flag_a == true);
@@ -1551,11 +1551,11 @@ BOOST_AUTO_TEST_CASE(little_endian_integer_variations)
     orig.ll = -1234567890123456789LL;
     orig.ull = 9876543210987654321ULL;
 
-    auto buf = ssz_pack::serialize(orig, true);
+    auto buf = ssz::serialize(orig, true);
     BOOST_TEST(buf.data[0] == static_cast<char>(1));
 
     with_integer_variations result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     BOOST_TEST(ok);
     BOOST_TEST(result.id == orig.id);
     BOOST_TEST(result.s == orig.s);
@@ -1590,10 +1590,10 @@ BOOST_AUTO_TEST_SUITE(type_hash_layout_independence)
 BOOST_AUTO_TEST_CASE(field_order_affects_hash)
 {
     simple_integrals orig{};
-    auto buf_orig = ssz_pack::serialize(orig);
+    auto buf_orig = ssz::serialize(orig);
 
     reordered_integrals result{};
-    bool ok = ssz_pack::deserialize(buf_orig, result);
+    bool ok = ssz::deserialize(buf_orig, result);
     BOOST_TEST(!ok); // 字段顺序不同，哈希不同，反序列化应失败
 }
 
@@ -1603,12 +1603,436 @@ BOOST_AUTO_TEST_CASE(same_layout_same_hash)
     // 因为结构体类型不同
     with_array_integral a{};
     with_array_integral b{};
-    auto buf_a = ssz_pack::serialize(a);
-    auto buf_b = ssz_pack::serialize(b);
+    auto buf_a = ssz::serialize(a);
+    auto buf_b = ssz::serialize(b);
 
     // 前4字节是类型哈希，同一类型的应相同
     for (size_t i = 0; i < sizeof(uint32_t); i++)
         BOOST_TEST(buf_a.data[i] == buf_b.data[i]);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// ============================================================================
+// serialize_without_meta / deserialize_without_meta 测试
+// ============================================================================
+
+BOOST_AUTO_TEST_SUITE(without_meta_serialization)
+
+BOOST_AUTO_TEST_CASE(without_meta_no_header)
+{
+    simple_integrals orig{};
+    auto buf = ssz::serialize_without_meta(orig);
+
+    // 不应包含类型哈希 (4字节) 和字节序标志 (1字节)
+    size_t expected_size = sizeof(orig.a) + sizeof(orig.b) + sizeof(orig.c) + sizeof(orig.d)
+        + sizeof(orig.e) + sizeof(orig.f) + sizeof(orig.g) + sizeof(orig.h);
+    BOOST_TEST(buf.data.size() == expected_size);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_roundtrip)
+{
+    simple_integrals orig{
+        0x12, 0x3456, 0x789ABCDE, 0xFEDCBA9876543210ULL,
+        -0x11, -0x2233, -0x44556678, -0x1122334455667788LL
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    simple_integrals result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.a == orig.a);
+    BOOST_TEST(result.b == orig.b);
+    BOOST_TEST(result.c == orig.c);
+    BOOST_TEST(result.d == orig.d);
+    BOOST_TEST(result.e == orig.e);
+    BOOST_TEST(result.f == orig.f);
+    BOOST_TEST(result.g == orig.g);
+    BOOST_TEST(result.h == orig.h);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_string_roundtrip)
+{
+    with_string orig{42, "Hello without meta!", "无元数据测试"};
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_string result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.name == orig.name);
+    BOOST_TEST(result.desc == orig.desc);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_vector_roundtrip)
+{
+    with_vector_integral orig{
+        100,
+        {95, 87, 92, 88, 76},
+        {1, -2, 3, -4, 5, -6}
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_vector_integral result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.scores.size() == orig.scores.size());
+    BOOST_TEST(result.flags.size() == orig.flags.size());
+    for (size_t i = 0; i < orig.scores.size(); i++)
+        BOOST_TEST(result.scores[i] == orig.scores[i]);
+    for (size_t i = 0; i < orig.flags.size(); i++)
+        BOOST_TEST(result.flags[i] == orig.flags[i]);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_empty_vector)
+{
+    with_vector_integral orig{0, {}, {}};
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_vector_integral result{999, {1, 2, 3}, {4, 5, 6}};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.scores.empty());
+    BOOST_TEST(result.flags.empty());
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_float_roundtrip)
+{
+    with_vector_float orig{1, {3.14f, 2.718f, 1.618f}};
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_vector_float result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.values.size() == orig.values.size());
+    for (size_t i = 0; i < orig.values.size(); i++)
+        BOOST_TEST(result.values[i] == orig.values[i]);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_little_endian)
+{
+    simple_integrals orig{
+        0x12, 0x3456, 0x789ABCDE, 0xFEDCBA9876543210ULL,
+        -0x11, -0x2233, -0x44556678, -0x1122334455667788LL
+    };
+
+    auto buf = ssz::serialize_without_meta(orig, true);
+    BOOST_TEST(buf.data[0] != static_cast<char>(0)); // 小端序编码，但无字节序标志
+
+    simple_integrals result{};
+    bool ok = ssz::deserialize_without_meta(buf, result, true);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.a == orig.a);
+    BOOST_TEST(result.b == orig.b);
+    BOOST_TEST(result.c == orig.c);
+    BOOST_TEST(result.d == orig.d);
+    BOOST_TEST(result.e == orig.e);
+    BOOST_TEST(result.f == orig.f);
+    BOOST_TEST(result.g == orig.g);
+    BOOST_TEST(result.h == orig.h);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_nested_struct)
+{
+    with_nested_struct orig{
+        42,
+        {100, 0x1234567890ABCDEFULL, "inner-without-meta"},
+        "outer"
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_nested_struct result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.inner.x == orig.inner.x);
+    BOOST_TEST(result.inner.y == orig.inner.y);
+    BOOST_TEST(result.inner.label == orig.inner.label);
+    BOOST_TEST(result.name == orig.name);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_deep_nested)
+{
+    deep_outer orig{
+        7,
+        {{1, "deep-without-meta"}, {0xAA, 0xBB, 0xCC}}
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    deep_outer result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.middle.inner.a == orig.middle.inner.a);
+    BOOST_TEST(result.middle.inner.b == orig.middle.inner.b);
+    BOOST_TEST(result.middle.data.size() == orig.middle.data.size());
+    for (size_t i = 0; i < orig.middle.data.size(); i++)
+        BOOST_TEST(result.middle.data[i] == orig.middle.data[i]);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_vector_struct)
+{
+    with_vector_struct orig{
+        100,
+        {{1, "first"}, {2, "second"}, {3, "third"}}
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_vector_struct result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.items.size() == orig.items.size());
+    for (size_t i = 0; i < orig.items.size(); i++)
+    {
+        BOOST_TEST(result.items[i].key == orig.items[i].key);
+        BOOST_TEST(result.items[i].value == orig.items[i].value);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_multi_level_vector)
+{
+    with_multi_vector orig{
+        1,
+        {
+            {"group1", {{"k1", "v1"}, {"k2", "v2"}}},
+            {"group2", {{"k3", "v3"}}}
+        }
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_multi_vector result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.groups.size() == orig.groups.size());
+    for (size_t i = 0; i < orig.groups.size(); i++)
+    {
+        BOOST_TEST(result.groups[i].name == orig.groups[i].name);
+        BOOST_TEST(result.groups[i].tags.size() == orig.groups[i].tags.size());
+        for (size_t j = 0; j < orig.groups[i].tags.size(); j++)
+        {
+            BOOST_TEST(result.groups[i].tags[j].key == orig.groups[i].tags[j].key);
+            BOOST_TEST(result.groups[i].tags[j].val == orig.groups[i].tags[j].val);
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_bool_roundtrip)
+{
+    with_bool orig{1, true, false, true};
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_bool result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.flag_a == true);
+    BOOST_TEST(result.flag_b == false);
+    BOOST_TEST(result.flag_c == true);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_char_types)
+{
+    with_char_types orig{
+        42, 'A', static_cast<signed char>(-1), static_cast<unsigned char>(200), L'世'
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_char_types result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.a == orig.a);
+    BOOST_TEST(result.b == orig.b);
+    BOOST_TEST(result.c == orig.c);
+    BOOST_TEST(result.d == orig.d);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_array_struct)
+{
+    with_array_struct orig{};
+    orig.id = 5;
+    orig.points = {{ {10, 20}, {30, -40}, {50, 60} }};
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_array_struct result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    for (size_t i = 0; i < orig.points.size(); i++)
+    {
+        BOOST_TEST(result.points[i].x == orig.points[i].x);
+        BOOST_TEST(result.points[i].y == orig.points[i].y);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_default_parameter)
+{
+    // 验证 deserialize_without_meta 的 little_endian 默认参数
+    simple_integrals orig{};
+    auto buf = ssz::serialize_without_meta(orig); // 默认大端序
+
+    simple_integrals result{};
+    bool ok = ssz::deserialize_without_meta(buf, result); // 默认大端序
+    BOOST_TEST(ok);
+    BOOST_TEST(result.a == orig.a);
+}
+
+BOOST_AUTO_TEST_CASE(serialize_without_meta_equals_serialize_fields)
+{
+    // 验证 serialize_without_meta 和 serialize 的字段数据部分相同
+    simple_integrals orig{};
+    auto buf_with_meta = ssz::serialize(orig);
+    auto buf_without_meta = ssz::serialize_without_meta(orig);
+
+    // 跳过 serialize 的元数据头 (5字节: 1字节标志 + 4字节哈希)
+    const size_t header_size = 1 + sizeof(uint32_t);
+    BOOST_TEST(buf_with_meta.data.size() == buf_without_meta.data.size() + header_size);
+
+    // 比较字段数据部分是否相同
+    for (size_t i = 0; i < buf_without_meta.data.size(); i++)
+        BOOST_TEST(buf_with_meta.data[header_size + i] == buf_without_meta.data[i]);
+}
+
+BOOST_AUTO_TEST_CASE(deserialize_fails_on_without_meta_data)
+{
+    // 使用 deserialize 读取 serialize_without_meta 的数据应失败（缺少元数据）
+    simple_integrals orig{};
+    auto buf = ssz::serialize_without_meta(orig);
+
+    simple_integrals result{};
+    bool ok = ssz::deserialize(buf, result);
+    BOOST_TEST(!ok);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_roundtrip_with_string_and_vector)
+{
+    mixed_types orig{
+        0xDEAD,
+        "without-meta-test",
+        {10, 20, 30, 40, 50},
+        3.14159f,
+        0x1234567890ABCDEFULL,
+        {-100, -200, -300}
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    mixed_types result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.label == orig.label);
+    BOOST_TEST(result.tags.size() == orig.tags.size());
+    for (size_t i = 0; i < orig.tags.size(); i++)
+        BOOST_TEST(result.tags[i] == orig.tags[i]);
+    BOOST_TEST(result.ratio == orig.ratio);
+    BOOST_TEST(result.timestamp == orig.timestamp);
+    BOOST_TEST(result.offsets.size() == orig.offsets.size());
+    for (size_t i = 0; i < orig.offsets.size(); i++)
+        BOOST_TEST(result.offsets[i] == orig.offsets[i]);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_little_endian_nested_struct)
+{
+    with_nested_struct orig{
+        42,
+        {100, 0x1234567890ABCDEFULL, "inner-le"},
+        "outer-le"
+    };
+
+    auto buf = ssz::serialize_without_meta(orig, true);
+
+    with_nested_struct result{};
+    bool ok = ssz::deserialize_without_meta(buf, result, true);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.inner.x == orig.inner.x);
+    BOOST_TEST(result.inner.y == orig.inner.y);
+    BOOST_TEST(result.inner.label == orig.inner.label);
+    BOOST_TEST(result.name == orig.name);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_empty_struct)
+{
+    empty_struct orig{};
+    auto buf = ssz::serialize_without_meta(orig);
+    BOOST_TEST(buf.data.empty()); // 空结构体序列化后应为空
+
+    empty_struct result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_nested_vector_struct_attrs)
+{
+    with_nested_vector_struct orig{
+        7,
+        {
+            {1, {{"color", "red"}, {"size", "large"}}, "desc1"},
+            {2, {{"weight", "10kg"}}, "desc2"}
+        }
+    };
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_nested_vector_struct result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.complex_items.size() == orig.complex_items.size());
+    for (size_t i = 0; i < orig.complex_items.size(); i++)
+    {
+        BOOST_TEST(result.complex_items[i].id == orig.complex_items[i].id);
+        BOOST_TEST(result.complex_items[i].desc == orig.complex_items[i].desc);
+        BOOST_TEST(result.complex_items[i].attrs.size() == orig.complex_items[i].attrs.size());
+        for (size_t j = 0; j < orig.complex_items[i].attrs.size(); j++)
+        {
+            BOOST_TEST(result.complex_items[i].attrs[j].name == orig.complex_items[i].attrs[j].name);
+            BOOST_TEST(result.complex_items[i].attrs[j].value == orig.complex_items[i].attrs[j].value);
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(without_meta_integer_variations)
+{
+    with_integer_variations orig{};
+    orig.id = 1;
+    orig.s = -32768;
+    orig.us = 65535;
+    orig.l = -123456789L;
+    orig.ul = 987654321UL;
+    orig.ll = -1234567890123456789LL;
+    orig.ull = 9876543210987654321ULL;
+
+    auto buf = ssz::serialize_without_meta(orig);
+
+    with_integer_variations result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.s == orig.s);
+    BOOST_TEST(result.us == orig.us);
+    BOOST_TEST(result.l == orig.l);
+    BOOST_TEST(result.ul == orig.ul);
+    BOOST_TEST(result.ll == orig.ll);
+    BOOST_TEST(result.ull == orig.ull);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
