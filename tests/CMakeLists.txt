@@ -13,7 +13,7 @@ add_executable(test_ssz
 target_link_libraries(test_ssz
     PRIVATE
     Boost::unit_test_framework
-    Boost::pfr
+#   Boost::pfr
 )
 
 target_include_directories(test_ssz PRIVATE
