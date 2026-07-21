@@ -21,7 +21,6 @@
 #include <vector>
 #include <iostream>
 #include <iomanip>
-#include <format>
 
 // 以二进制查看器风格输出十六进制转储。
 void hex_dump(std::ostream& os, const std::vector<char>& data)
@@ -31,7 +30,8 @@ void hex_dump(std::ostream& os, const std::vector<char>& data)
     for (size_t offset = 0; offset < data.size(); offset += bytes_per_line)
     {
         // 输出偏移地址。
-        os << std::format("{:08x}  ", offset);
+        os << std::hex << std::setw(8) << std::setfill('0') << offset << "  ";
+        os << std::dec;
 
         size_t remaining = data.size() - offset;
         size_t line_len = (remaining < bytes_per_line) ? remaining : bytes_per_line;
@@ -40,7 +40,12 @@ void hex_dump(std::ostream& os, const std::vector<char>& data)
         for (size_t i = 0; i < bytes_per_line; i++)
         {
             if (i < line_len)
-                os << std::format("{:02x} ", static_cast<unsigned char>(data[offset + i]));
+            {
+                os << std::hex << std::setw(2) << std::setfill('0')
+                   << static_cast<unsigned>(static_cast<unsigned char>(data[offset + i]))
+                   << " ";
+                os << std::dec;
+            }
             else
                 os << "   "; // 填充空格对齐。
 
