@@ -168,21 +168,55 @@ void ssz_write(type v, target& p, bool little_endian = false)
     }
 }
 
+// 基本类型使用显式哈希值确保跨编译器一致性；复合类型基于类型特征递归计算。
 template <typename T>
 constexpr uint32_t get_type_hash()
 {
-#if defined(_MSC_VER)
-    std::string_view name = __FUNCSIG__;
-#else
-    std::string_view name = __PRETTY_FUNCTION__;
-#endif
-    uint32_t hash = 2166136261U;
-    for (char c : name)
+    // 为所有基本类型提供显式哈希值，保证不同编译器输出相同结果。
+    if constexpr (std::is_same_v<T, bool>) return 0x8c3a0f1a;
+    else if constexpr (std::is_same_v<T, char>) return 0x7a3b0c2b;
+    else if constexpr (std::is_same_v<T, signed char>) return 0x9d4e1f3c;
+    else if constexpr (std::is_same_v<T, unsigned char>) return 0x2b5c7d8e;
+    else if constexpr (std::is_same_v<T, wchar_t>) return 0x1a3b4c5d;
+    else if constexpr (std::is_same_v<T, short>) return 0x8e9f0a1b;
+    else if constexpr (std::is_same_v<T, unsigned short>) return 0x2c3d4e5f;
+    else if constexpr (std::is_same_v<T, int>) return 0x6a7b8c9d;
+    else if constexpr (std::is_same_v<T, unsigned int>) return 0x0e1f2a3b;
+    else if constexpr (std::is_same_v<T, long>) return 0x4c5d6e7f;
+    else if constexpr (std::is_same_v<T, unsigned long>) return 0x8a9b0c1d;
+    else if constexpr (std::is_same_v<T, long long>) return 0x2e3f4a5b;
+    else if constexpr (std::is_same_v<T, unsigned long long>) return 0x6c7d8e9f;
+    else if constexpr (std::is_same_v<T, float>) return 0x0a1b2c3d;
+    else if constexpr (std::is_same_v<T, double>) return 0x4e5f6a7b;
+    else if constexpr (std::is_same_v<T, long double>) return 0x8c9d0e1f;
+    else if constexpr (std::is_same_v<T, std::string>) return 0xa1b2c3d4;
+    else if constexpr (std::is_same_v<T, std::string_view>) return 0xe5f6a7b8;
+    else if constexpr (std::is_enum_v<T>)
+        return get_type_hash<std::underlying_type_t<T>>();
+    else if constexpr (is_std_array_v<T>)
     {
-        hash ^= static_cast<uint32_t>(c);
-        hash *= 16777619U;
+        using value_type = typename T::value_type;
+        constexpr auto array_size = std::tuple_size_v<T>;
+        uint32_t h = 0x12345678;
+        h ^= get_type_hash<value_type>();
+        h *= 16777619U;
+        h ^= static_cast<uint32_t>(array_size);
+        return h;
     }
-    return hash;
+    else
+    {
+        // 对于其他类型，基于类型特征生成确定性哈希。
+        uint32_t h = 2166136261U;
+        h ^= static_cast<uint32_t>(sizeof(T));
+        h *= 16777619U;
+        if constexpr (std::is_class_v<T>)
+            h ^= 0x4000;
+        else if constexpr (std::is_pointer_v<T>)
+            h ^= 0x2000;
+        else if constexpr (std::is_array_v<T>)
+            h ^= 0x8000;
+        return h;
+    }
 }
 
 // 前向声明，供 type_hash_for 递归引用。
@@ -207,27 +241,49 @@ constexpr uint32_t type_hash_for()
         return get_type_hash<T>();
 }
 
-// 为平凡可复制类型提供特化的哈希计算（直接使用类型名称哈希，避免遍历字段）。
+// 前向声明。
+template <typename T>
+constexpr uint32_t calculate_struct_hash_impl(std::false_type);
+
+// 为平凡可复制类型提供哈希计算。
+// 若类型有可遍历字段（struct/class），则递归遍历字段以确保跨编译器一致性；
+// 否则退化为基于类型特征的哈希。
 template <typename T>
 constexpr uint32_t calculate_struct_hash_impl(std::true_type)
 {
-    return get_type_hash<T>();
+    if constexpr (std::is_class_v<T> && boost::pfr::tuple_size_v<T> > 0)
+    {
+        // 对于有字段的平凡可复制结构体，同样遍历字段以确保跨编译器一致性。
+        return calculate_struct_hash_impl<T>(std::false_type{});
+    }
+    else
+    {
+        // 对无字段类型（基本类型、空结构体等）使用 get_type_hash。
+        return get_type_hash<T>();
+    }
 }
 
 // 为SSZ结构体（非平凡可复制）提供递归字段哈希计算。
+// 使用基于类型特征的确定性种子，不依赖编译器特定宏输出。
 template <typename T>
 constexpr uint32_t calculate_struct_hash_impl(std::false_type)
 {
-    uint32_t hash = get_type_hash<T>();
+    // 使用基于类型特征的确定性种子，而非 get_type_hash<T>()。
+    uint32_t hash = 2166136261U;
+    hash ^= static_cast<uint32_t>(sizeof(T));
+    hash *= 16777619U;
 
     if constexpr (std::is_default_constructible_v<std::decay_t<T>>)
     {
         using raw_type = std::decay_t<T>;
         constexpr auto field_count = boost::pfr::tuple_size_v<raw_type>;
 
+        hash ^= static_cast<uint32_t>(field_count);
+        hash *= 16777619U;
+
         [&hash]<std::size_t... I>(std::index_sequence<I...>)
         {
-            ((hash ^= get_type_hash<std::integral_constant<std::size_t, I>>()
+            ((hash ^= static_cast<uint32_t>(I)
                   + 0x9e3779b9 + (hash << 6) + (hash >> 2),
               hash ^= type_hash_for<boost::pfr::tuple_element_t<I, raw_type>>()
                   + 0x9e3779b9 + (hash << 6) + (hash >> 2)), ...);
