@@ -9,6 +9,7 @@
 
 #include <boost/pfr.hpp>
 
+#include <array>
 #include <vector>
 #include <string_view>
 #include <type_traits>
@@ -74,6 +75,16 @@ struct is_specialization_of<Primary<Args...>, Primary> : std::true_type {};
 
 template<typename T, template<typename...> class Primary>
 inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>::value;
+
+// std::array 特化检测（因为 std::array 有非类型模板参数，无法用上面的 is_specialization_of 匹配）
+template<typename T>
+struct is_std_array : std::false_type {};
+
+template<typename T, std::size_t N>
+struct is_std_array<std::array<T, N>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_std_array_v = is_std_array<T>::value;
 
 // 判断类型是否为需要递归序列化的 SSZ 结构体
 template<typename T>
@@ -329,6 +340,11 @@ void serialize_vector_elem(const Elem& elem, Writer& writer, bool little_endian)
     using T = std::decay_t<Elem>;
     if constexpr (std::integral<T>)
         ssz_write(elem, writer, little_endian);
+    else if constexpr (is_std_array_v<T>)
+    {
+        for (const auto& e : elem)
+            serialize_vector_elem(e, writer, little_endian);
+    }
     else if constexpr (is_ssz_struct<T>)
     {
         serialize_fields(elem, writer, little_endian);
@@ -367,6 +383,11 @@ void serialize_field(const FieldType& field, Writer& writer, bool little_endian)
     }
     else if constexpr (std::integral<FieldType>)
         ssz_write(field, writer, little_endian);
+    else if constexpr (is_std_array_v<FieldType>)
+    {
+        for (const auto& elem : field)
+            serialize_field(elem, writer, little_endian);
+    }
     else if constexpr (is_ssz_struct<FieldType>)
     {
         serialize_fields(field, writer, little_endian);
@@ -395,6 +416,14 @@ bool deserialize_vector_elem(Reader& field_reader, ssz::buffer& buf, Elem& elem,
     {
         elem = ssz_read<T>(field_reader, little_endian);
         buf.advance_read(sizeof(T));
+    }
+    else if constexpr (is_std_array_v<T>)
+    {
+        for (auto& e : elem)
+        {
+            if (!deserialize_vector_elem(field_reader, buf, e, little_endian))
+                return false;
+        }
     }
     else if constexpr (is_ssz_struct<T>)
     {
@@ -446,6 +475,14 @@ bool deserialize_field(Reader& field_reader, ssz::buffer& buf, FieldType& field,
     {
         field = ssz_read<FieldType>(field_reader, little_endian);
         buf.advance_read(sizeof(FieldType));
+    }
+    else if constexpr (is_std_array_v<FieldType>)
+    {
+        for (auto& elem : field)
+        {
+            if (!deserialize_field(field_reader, buf, elem, little_endian))
+                return false;
+        }
     }
     else if constexpr (is_ssz_struct<FieldType>)
     {
