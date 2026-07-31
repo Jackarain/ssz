@@ -6,11 +6,12 @@
 //
 
 #define BOOST_TEST_MODULE ssz_test
-#include <boost/test/included/unit_test.hpp>
+#include "unit_test.hpp"
 
 #include <ssz/ssz.hpp>
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <array>
@@ -494,6 +495,122 @@ BOOST_AUTO_TEST_CASE(multiple_serialize_independence)
     BOOST_TEST(ssz::deserialize(buf_b, rb));
     BOOST_TEST(ra.a == a.a);
     BOOST_TEST(rb.a == b.a);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// ============================================================================
+// 健壮性测试（缓冲区边界 / 非法输入）
+// ============================================================================
+
+// vector<bool> / vector<string> 测试用辅助结构体
+struct with_bool_vec
+{
+    uint32_t id;
+    std::vector<bool> flags;
+};
+
+struct with_string_vec
+{
+    uint32_t id;
+    std::vector<std::string> names;
+};
+
+BOOST_AUTO_TEST_SUITE(robustness)
+
+BOOST_AUTO_TEST_CASE(deserialize_empty_buffer)
+{
+    // 空缓冲区反序列化应安全失败，而不是越界读取。
+    ssz::buffer buf;
+
+    simple_integrals result{};
+    bool ok = ssz::deserialize(buf, result);
+    BOOST_TEST(!ok);
+}
+
+BOOST_AUTO_TEST_CASE(deserialize_truncated_buffer)
+{
+    with_string orig{42, "Hello, SSZ!", "你好，世界！"};
+    auto buf = ssz::serialize(orig);
+
+    // 截断缓冲区尾部，反序列化应安全失败。
+    buf.data.resize(buf.data.size() - 5);
+    buf.offset = 0;
+
+    with_string result{};
+    bool ok = ssz::deserialize(buf, result);
+    BOOST_TEST(!ok);
+}
+
+BOOST_AUTO_TEST_CASE(deserialize_truncated_vector)
+{
+    with_vector_integral orig{100, {95, 87, 92, 88, 76}, {1, -2, 3}};
+    auto buf = ssz::serialize(orig);
+
+    // 截断向量数据，反序列化应安全失败。
+    buf.data.resize(buf.data.size() - 3);
+    buf.offset = 0;
+
+    with_vector_integral result{};
+    bool ok = ssz::deserialize(buf, result);
+    BOOST_TEST(!ok);
+}
+
+BOOST_AUTO_TEST_CASE(deserialize_invalid_endian_flag)
+{
+    simple_integrals orig{};
+    auto buf = ssz::serialize(orig);
+
+    // 将字节序标志改为非法值（>1），反序列化应拒绝。
+    buf.data[0] = static_cast<char>(0xFF);
+    buf.offset = 0;
+
+    simple_integrals result{};
+    bool ok = ssz::deserialize(buf, result);
+    BOOST_TEST(!ok);
+}
+
+BOOST_AUTO_TEST_CASE(deserialize_without_meta_truncated)
+{
+    with_string orig{42, "Hello without meta!", "无元数据测试"};
+    auto buf = ssz::serialize_without_meta(orig);
+
+    // 截断后无元数据反序列化应安全失败。
+    buf.data.resize(buf.data.size() - 8);
+
+    with_string result{};
+    bool ok = ssz::deserialize_without_meta(buf, result);
+    BOOST_TEST(!ok);
+}
+
+BOOST_AUTO_TEST_CASE(vector_bool_roundtrip)
+{
+    // std::vector<bool> 的元素是位代理对象，验证其序列化/反序列化正确。
+    with_bool_vec orig{7, {true, false, true, true, false}};
+    auto buf = ssz::serialize(orig);
+
+    with_bool_vec result{};
+    bool ok = ssz::deserialize(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.flags.size() == orig.flags.size());
+    for (size_t i = 0; i < orig.flags.size(); i++)
+        BOOST_TEST(result.flags[i] == orig.flags[i]);
+}
+
+BOOST_AUTO_TEST_CASE(vector_string_roundtrip)
+{
+    // 验证 vector<string> 的序列化/反序列化正确。
+    with_string_vec orig{3, {"alpha", "", "gamma"}};
+    auto buf = ssz::serialize(orig);
+
+    with_string_vec result{};
+    bool ok = ssz::deserialize(buf, result);
+    BOOST_TEST(ok);
+    BOOST_TEST(result.id == orig.id);
+    BOOST_TEST(result.names.size() == orig.names.size());
+    for (size_t i = 0; i < orig.names.size(); i++)
+        BOOST_TEST(result.names[i] == orig.names[i]);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
