@@ -15,8 +15,9 @@
 ## 要求
 
 - C++20 或更高版本
-- [Boost](https://www.boost.org/)（需要 `Boost.PFR` 和 `Boost.UnitTestFramework` 用于测试）
 - CMake 3.20+（仅用于构建测试）
+
+> 序列化核心基于 [Boost.PFR](https://github.com/boostorg/pfr)，项目已在 `include/boost` 中捆绑了所需的 PFR 头文件，无需额外安装 Boost。单元测试使用自包含的轻量测试框架（`tests/unit_test.hpp`），同样不依赖外部 Boost。
 
 ## 使用
 
@@ -39,11 +40,11 @@ int main() {
     Person orig{1, "Alice", {95, 87, 92}};
 
     // 序列化
-    auto buf = ssz_pack::serialize(orig);
+    auto buf = ssz::serialize(orig);
 
     // 反序列化
     Person result{};
-    bool ok = ssz_pack::deserialize(buf, result);
+    bool ok = ssz::deserialize(buf, result);
     // ok == true, result == orig
 }
 ```
@@ -66,7 +67,7 @@ int main() {
 
 ### 字节序
 
-`ssz_pack::serialize()` 和 `ssz_pack::deserialize()` 的第二个参数 `little_endian`（默认为 `false`）控制字节序：
+`ssz::serialize()` 和 `ssz::deserialize()` 的第二个参数 `little_endian`（默认为 `false`）控制字节序：
 
 - `false` — 默认字节序（网络字节序）
 - `true` — 使用小端序，当主机也为小端序时直接内存复制，性能更高
