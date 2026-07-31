@@ -16,6 +16,8 @@
 #include <utility>
 #include <cstring>
 #include <cstdint>
+#include <cstddef>
+#include <iterator>
 #include <concepts>
 #include <bit>
 
@@ -322,6 +324,12 @@ void serialize_fields(const T& obj, Writer& writer, bool little_endian = false);
 template <typename Reader, typename T>
 bool deserialize_fields(Reader& field_reader, ssz::buffer& buf, T& obj, bool little_endian = false);
 
+// 检查缓冲区中是否还有 n 个字节可读。
+inline bool can_read(const buffer& buf, std::size_t n)
+{
+    return buf.offset <= buf.data.size() && n <= buf.data.size() - buf.offset;
+}
+
 } // namespace ssz::detail
 
 // -----------------------------------------------------------------------
@@ -348,11 +356,24 @@ buffer serialize(const T& obj, bool little_endian)
 template <typename T>
 bool deserialize(buffer& buf, T& obj)
 {
+    // 读取字节序标志前先检查缓冲区是否足够。
+    if (!detail::can_read(buf, 1))
+        return false;
+
     auto reader = buf.get_read_iterator();
 
     uint8_t endian_flag = static_cast<uint8_t>(*reader++);
     buf.advance_read(1);
+
+    // 仅接受 0（大端序）或 1（小端序）两种合法标志。
+    if (endian_flag > 1)
+        return false;
+
     bool little_endian = (endian_flag != 0);
+
+    // 读取类型哈希前先检查缓冲区是否足够。
+    if (!detail::can_read(buf, sizeof(uint32_t)))
+        return false;
 
     uint32_t stream_hash = detail::ssz_read<uint32_t>(reader, endian_flag);
     buf.advance_read(sizeof(uint32_t));
@@ -396,6 +417,12 @@ void serialize_vector_elem(const Elem& elem, Writer& writer, bool little_endian)
     using T = std::decay_t<Elem>;
     if constexpr (std::integral<T>)
         ssz_write(elem, writer, little_endian);
+    else if constexpr (std::is_same_v<T, std::string>)
+    {
+        ssz_write(static_cast<uint32_t>(elem.size()), writer, little_endian);
+        for (char c : elem)
+            *writer++ = c;
+    }
     else if constexpr (is_std_array_v<T>)
     {
         for (const auto& e : elem)
@@ -428,8 +455,17 @@ void serialize_field(const FieldType& field, Writer& writer, bool little_endian)
     {
         using value_type = typename FieldType::value_type;
         ssz_write(static_cast<uint32_t>(field.size()), writer, little_endian);
-        for (const auto& elem : field)
-            serialize_vector_elem(elem, writer, little_endian);
+        if constexpr (std::is_same_v<value_type, bool>)
+        {
+            // std::vector<bool> 的元素是位代理对象，需先转换为 bool 再序列化。
+            for (bool b : field)
+                serialize_vector_elem(b, writer, little_endian);
+        }
+        else
+        {
+            for (const auto& elem : field)
+                serialize_vector_elem(elem, writer, little_endian);
+        }
     }
     else if constexpr (std::is_same_v<FieldType, std::string>)
     {
@@ -470,8 +506,22 @@ bool deserialize_vector_elem(Reader& field_reader, ssz::buffer& buf, Elem& elem,
     using T = std::decay_t<Elem>;
     if constexpr (std::integral<T>)
     {
+        if (!can_read(buf, sizeof(T)))
+            return false;
         elem = ssz_read<T>(field_reader, little_endian);
         buf.advance_read(sizeof(T));
+    }
+    else if constexpr (std::is_same_v<T, std::string>)
+    {
+        if (!can_read(buf, sizeof(uint32_t)))
+            return false;
+        uint32_t size = ssz_read<uint32_t>(field_reader, little_endian);
+        buf.advance_read(sizeof(uint32_t));
+        if (!can_read(buf, size))
+            return false;
+        elem.assign(field_reader, field_reader + size);
+        field_reader += size;
+        buf.advance_read(size);
     }
     else if constexpr (is_std_array_v<T>)
     {
@@ -488,6 +538,8 @@ bool deserialize_vector_elem(Reader& field_reader, ssz::buffer& buf, Elem& elem,
     }
     else
     {
+        if (!can_read(buf, sizeof(T)))
+            return false;
         if (little_endian != host_is_little_endian)
         {
             char* ptr = reinterpret_cast<char*>(&elem);
@@ -510,25 +562,58 @@ bool deserialize_field(Reader& field_reader, ssz::buffer& buf, FieldType& field,
     if constexpr (is_specialization_of_v<FieldType, std::vector>)
     {
         using value_type = typename FieldType::value_type;
+
+        if (!can_read(buf, sizeof(uint32_t)))
+            return false;
         uint32_t size = ssz_read<uint32_t>(field_reader, little_endian);
         buf.advance_read(sizeof(uint32_t));
-        field.resize(size);
-        for (auto& elem : field)
+
+        // 对平凡可复制的元素类型，预先校验整个元素区是否足够，
+        // 避免恶意长度字段导致超大的内存分配（DoS）。
+        if constexpr (std::is_trivially_copyable_v<value_type>)
         {
-            if (!deserialize_vector_elem(field_reader, buf, elem, little_endian))
+            const std::size_t remaining = buf.data.size() - buf.offset;
+            if (remaining / sizeof(value_type) < size)
                 return false;
+        }
+
+        field.resize(size);
+        if constexpr (std::is_same_v<value_type, bool>)
+        {
+            // std::vector<bool> 的元素是位代理对象，通过 bool 临时变量读写。
+            for (std::size_t i = 0; i < size; i++)
+            {
+                bool b = false;
+                if (!deserialize_vector_elem(field_reader, buf, b, little_endian))
+                    return false;
+                field[i] = b;
+            }
+        }
+        else
+        {
+            for (auto& elem : field)
+            {
+                if (!deserialize_vector_elem(field_reader, buf, elem, little_endian))
+                    return false;
+            }
         }
     }
     else if constexpr (std::is_same_v<FieldType, std::string>)
     {
+        if (!can_read(buf, sizeof(uint32_t)))
+            return false;
         uint32_t size = ssz_read<uint32_t>(field_reader, little_endian);
         buf.advance_read(sizeof(uint32_t));
+        if (!can_read(buf, size))
+            return false;
         field.assign(field_reader, field_reader + size);
         field_reader += size;
         buf.advance_read(size);
     }
     else if constexpr (std::integral<FieldType>)
     {
+        if (!can_read(buf, sizeof(FieldType)))
+            return false;
         field = ssz_read<FieldType>(field_reader, little_endian);
         buf.advance_read(sizeof(FieldType));
     }
@@ -547,6 +632,8 @@ bool deserialize_field(Reader& field_reader, ssz::buffer& buf, FieldType& field,
     }
     else
     {
+        if (!can_read(buf, sizeof(FieldType)))
+            return false;
         if (little_endian != host_is_little_endian)
         {
             char* ptr = reinterpret_cast<char*>(&field);
